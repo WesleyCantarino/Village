@@ -1,0 +1,15 @@
+{
+  "name": "village-wars",
+  "version": "1.0.0",
+  "description": "Browser-based medieval village management game",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "dependencies": {
+    "sql.js": "^1.10.3",
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
+  }
+}

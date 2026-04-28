@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Village Wars - Início</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: 
+        linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 100%),
+        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%233a6b2a" width="100" height="100"/><circle fill="%234e8a3c" cx="20" cy="30" r="15"/><circle fill="%234e8a3c" cx="80" cy="20" r="12"/><circle fill="%234e8a3c" cx="50" cy="80" r="20"/></svg>');
+      background-size: cover;
+    }
+    .login-box {
+      background: var(--parchment);
+      border: 4px solid var(--wood-medium);
+      border-radius: 8px;
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 32px var(--shadow-heavy);
+    }
+    .login-box h1 {
+      text-align: center;
+      color: var(--wood-darkest);
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 0 var(--gold);
+    }
+    .login-box .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 30px;
+      font-style: italic;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: var(--wood-dark);
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid var(--wood-medium);
+      border-radius: 4px;
+      font-size: 16px;
+      background: #fff;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 10px;
+    }
+    .btn-primary {
+      background: var(--wood-medium);
+      color: var(--parchment);
+      border: 2px solid var(--wood-dark);
+    }
+    .btn-primary:hover {
+      background: var(--wood-dark);
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--wood-medium);
+      border: 2px solid var(--wood-medium);
+    }
+    .btn-secondary:hover {
+      background: var(--wood-medium);
+      color: var(--parchment);
+    }
+    .error {
+      background: var(--red-dark);
+      color: var(--parchment);
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    .error.show {
+      display: block;
+    }
+    .divider {
+      text-align: center;
+      margin: 20px 0;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-box">
+      <h1>⚔️ Village Wars</h1>
+      <p class="subtitle">Conquiste, construa e vença!</p>
+      
+      <div id="error" class="error"></div>
+      
+      <div class="form-group">
+        <label for="playerName">Nome do Jogador</label>
+        <input type="text" id="playerName" placeholder="Digite seu nome" maxlength="20">
+      </div>
+      
+      <button class="btn btn-primary" onclick="createPlayer()">Criar Conta</button>
+      <div class="divider">— ou —</div>
+      <button class="btn btn-secondary" onclick="loginPlayer()">Entrar</button>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    let playerId = null;
+    let villageId = null;
+
+    async function createPlayer() {
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) return showError('Digite um nome para criar sua conta.');
+      
+      try {
+        const res = await fetch(`${API}/player/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error);
+        
+        playerId = data.playerId;
+        villageId = data.villageId;
+        localStorage.setItem('playerId', playerId);
+        localStorage.setItem('villageId', villageId);
+        localStorage.setItem('playerName', name);
+        window.location.href = '/game';
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    async function loginPlayer() {
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) return showError('Digite seu nome para entrar.');
+      
+      try {
+        const res = await fetch(`${API}/player/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error);
+        
+        playerId = data.playerId;
+        villageId = data.villageId;
+        localStorage.setItem('playerId', playerId);
+        localStorage.setItem('villageId', villageId);
+        localStorage.setItem('playerName', data.playerName);
+        window.location.href = '/game';
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error');
+      el.textContent = msg;
+      el.classList.add('show');
+    }
+
+    // Check if already logged in
+    const savedPlayer = localStorage.getItem('playerId');
+    const savedVillage = localStorage.getItem('villageId');
+    if (savedPlayer && savedVillage) {
+      window.location.href = '/game';
+    }
+  </script>
+</body>
+</html>
