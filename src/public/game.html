@@ -3,385 +3,150 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Village Wars - Sua Aldeia</title>
+  <title>Village Wars</title>
   <link rel="stylesheet" href="/css/style.css">
   <style>
-    .game-layout {
-      display: grid;
-      grid-template-columns: 250px 1fr 280px;
-      grid-template-rows: auto 1fr;
-      min-height: 100vh;
+    .loading-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.92);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
     }
-    
-    /* Header */
-    .game-header {
-      grid-column: 1 / -1;
-      background: var(--wood-dark);
-      border-bottom: 3px solid var(--gold);
-      padding: 15px 25px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .loading-overlay .spinner { width: 40px; height: 40px; border-width: 3px; }
+    .loading-overlay p { color: var(--parchment); font-size: 1rem; letter-spacing: 2px; }
+
+    .game-view { padding-top: 96px; }
+
+    /* ── Village scene ── */
+    .village-scene {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 10px 16px 40px;
     }
-    .game-header h1 {
-      color: var(--gold-bright);
-      font-size: 1.8em;
+    .village-name-banner {
+      color: var(--gold); font-size: 1.1rem; letter-spacing: 3px;
+      text-transform: uppercase; margin-bottom: 12px;
+      text-shadow: 0 0 20px rgba(212,175,55,0.4); opacity: 0.9;
     }
-    .header-info {
-      display: flex;
-      gap: 20px;
-      align-items: center;
+    .village-canvas-wrap {
+      position: relative; display: inline-block;
+      box-shadow: 0 0 0 3px var(--gold), 0 0 0 6px var(--wood-medium),
+                  0 0 60px rgba(0,0,0,0.8);
+      border-radius: 10px; overflow: hidden;
     }
-    .player-badge {
-      background: var(--wood-medium);
-      padding: 8px 16px;
-      border-radius: 4px;
-      color: var(--parchment);
+    #villageCanvas {
+      display: block; cursor: grab; user-select: none;
     }
-    .logout-btn {
-      background: var(--red);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
+    #villageCanvas:active { cursor: grabbing; }
+    .map-controls {
+      display: flex; gap: 6px; margin-top: 10px; justify-content: center;
     }
-    
-    /* Sidebar - Buildings */
-    .sidebar {
-      background: var(--parchment-dark);
-      padding: 15px;
-      overflow-y: auto;
+    .map-controls button {
+      background: var(--wood-dark); color: var(--gold);
+      border: 2px solid var(--gold); width: 34px; height: 34px;
+      border-radius: 4px; font-size: 1.1em; cursor: pointer;
+      font-weight: bold; line-height: 1; transition: background .2s;
     }
-    .sidebar h2 {
-      color: var(--wood-darkest);
-      font-size: 1.2em;
-      margin-bottom: 15px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid var(--wood-medium);
+    .map-controls button:hover { background: var(--wood-medium); }
+    .coord-badge {
+      margin-top: 6px; color: rgba(212,175,55,0.5);
+      font-size: 0.75rem; font-style: italic;
     }
-    .building-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .building-card {
-      background: var(--parchment);
-      border: 2px solid var(--wood-medium);
-      border-radius: 6px;
-      padding: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .building-card:hover {
-      border-color: var(--gold);
-      transform: translateX(4px);
-    }
-    .building-card.selected {
-      border-color: var(--gold);
-      box-shadow: 0 0 10px var(--gold);
-    }
-    .building-name {
-      font-weight: bold;
-      color: var(--wood-darkest);
-      margin-bottom: 5px;
-    }
-    .building-level {
-      font-size: 0.9em;
-      color: var(--text-muted);
-    }
-    .building-level span {
-      color: var(--gold);
-      font-weight: bold;
-    }
-    
-    /* Main Area - Village Map */
-    .main-area {
-      background: var(--grass);
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-    }
-    .village-header {
-      background: var(--wood-dark);
-      color: var(--parchment);
-      padding: 15px 20px;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .village-name {
-      font-size: 1.4em;
-      font-weight: bold;
-      color: var(--gold-bright);
-    }
-    .resources {
-      display: flex;
-      gap: 20px;
-    }
-    .resource {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .resource-icon {
-      font-size: 1.5em;
-    }
-    .resource-value {
-      font-weight: bold;
-      font-size: 1.1em;
-    }
-    .resource-rate {
-      font-size: 0.8em;
-      color: var(--grass-light);
-    }
-    
-    /* Village Grid */
-    .village-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      grid-template-rows: repeat(4, 100px);
-      gap: 10px;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    .village-plot {
-      background: rgba(0,0,0,0.2);
-      border: 2px dashed var(--grass-light);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-    .village-plot.built {
-      background: var(--wood-medium);
-      border: 2px solid var(--gold);
-      cursor: pointer;
-    }
-    .village-plot.built:hover {
-      background: var(--wood-light);
-    }
-    .plot-building {
-      text-align: center;
-      color: var(--parchment);
-    }
-    .plot-building-icon {
-      font-size: 2em;
-      display: block;
-    }
-    .plot-building-name {
-      font-size: 0.7em;
-      font-weight: bold;
-    }
-    .plot-building-level {
-      font-size: 0.8em;
-      color: var(--gold);
-    }
-    
-    /* Right Panel - Info */
-    .info-panel {
-      background: var(--parchment-dark);
-      padding: 15px;
-      overflow-y: auto;
-    }
-    .info-panel h2 {
-      color: var(--wood-darkest);
-      font-size: 1.2em;
-      margin-bottom: 15px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid var(--wood-medium);
-    }
-    .building-info {
-      background: var(--parchment);
-      border: 2px solid var(--wood-medium);
-      border-radius: 6px;
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-    .building-info h3 {
-      color: var(--wood-dark);
-      margin-bottom: 10px;
-    }
-    .building-stats {
-      font-size: 0.9em;
-      color: var(--text-muted);
-      margin-bottom: 15px;
-    }
-    .cost-section {
-      margin-bottom: 15px;
-    }
-    .cost-section h4 {
-      color: var(--wood-dark);
-      margin-bottom: 8px;
-    }
-    .cost-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 5px 0;
-      border-bottom: 1px solid var(--parchment-dark);
-    }
-    .cost-item.wood { color: #8B4513; }
-    .cost-item.clay { color: #B22222; }
-    .cost-item.iron { color: #4682B4; }
-    .build-time {
-      background: var(--wood-medium);
-      color: var(--parchment);
-      padding: 10px;
-      border-radius: 4px;
-      text-align: center;
-      margin-bottom: 15px;
-    }
-    .build-btn {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      font-weight: bold;
-      background: var(--grass);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .build-btn:hover {
-      background: var(--grass-light);
-    }
-    .build-btn:disabled {
-      background: var(--stone);
-      cursor: not-allowed;
-    }
-    
-    /* Build Queue */
-    .queue-section {
-      margin-top: 20px;
-    }
-    .queue-item {
-      background: var(--parchment);
-      border: 2px solid var(--wood-medium);
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 10px;
-    }
-    .queue-item-name {
-      font-weight: bold;
-      color: var(--wood-dark);
-    }
-    .queue-item-timer {
-      font-size: 0.9em;
-      color: var(--text-muted);
-    }
-    .queue-empty {
-      color: var(--text-muted);
-      font-style: italic;
-      text-align: center;
-    }
-    
-    /* Loading */
-    .loading {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-    .loading-content {
-      text-align: center;
-      color: var(--parchment);
-    }
-    .loading-spinner {
-      font-size: 3em;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
+
+    /* ── Notifications ── */
+    .notification { animation: notif-in .3s ease-out, notif-fade .5s ease-in 3.5s forwards; }
+    @keyframes notif-fade { to { opacity: 0; transform: translateX(20px); } }
   </style>
 </head>
 <body>
-  <div id="loading" class="loading">
-    <div class="loading-content">
-      <div class="loading-spinner">⚔️</div>
-      <p>Carregando...</p>
+
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>Carregando...</p>
+  </div>
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header id="game-header">
+    <div class="header-logo">⚔️ Village Wars</div>
+    <nav class="header-nav">
+      <button class="nav-btn active" data-view="village"   onclick="showView('village')">Aldeia</button>
+      <button class="nav-btn"        data-view="buildings" onclick="showView('buildings')">Edificações</button>
+      <button class="nav-btn"        data-view="map"       onclick="showView('map')">Mapa</button>
+    </nav>
+    <div class="header-resources">
+      <div class="resource-cell">
+        <span class="resource-icon">🪵</span>
+        <div class="resource-info">
+          <div><span class="resource-amount" id="res-wood">0</span><span class="resource-max" id="res-wood-max"></span></div>
+          <div class="resource-prod" id="res-wood-prod">+0/h</div>
+        </div>
+      </div>
+      <div class="resource-cell">
+        <span class="resource-icon">🧱</span>
+        <div class="resource-info">
+          <div><span class="resource-amount" id="res-clay">0</span><span class="resource-max" id="res-clay-max"></span></div>
+          <div class="resource-prod" id="res-clay-prod">+0/h</div>
+        </div>
+      </div>
+      <div class="resource-cell">
+        <span class="resource-icon">⛓️</span>
+        <div class="resource-info">
+          <div><span class="resource-amount" id="res-iron">0</span><span class="resource-max" id="res-iron-max"></span></div>
+          <div class="resource-prod" id="res-iron-prod">+0/h</div>
+        </div>
+      </div>
+    </div>
+    <div class="header-player">
+      <span class="header-player-name" id="playerName">Jogador</span>
+      <button class="btn-logout" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <!-- ── Build Queue Bar ──────────────────────────────────────────────────── -->
+  <div id="build-queue-bar"></div>
+
+  <!-- ── Village View ─────────────────────────────────────────────────────── -->
+  <div id="view-village" class="game-view active">
+    <div class="village-scene">
+      <div class="village-name-banner" id="villageName">Aldeia</div>
+      <div class="village-canvas-wrap">
+        <canvas id="villageCanvas" width="620" height="620"></canvas>
+      </div>
+      <div class="map-controls">
+        <button onclick="zoomIn()" title="Aproximar">+</button>
+        <button onclick="zoomOut()" title="Afastar">−</button>
+        <button onclick="resetZoom()" title="Resetar">↺</button>
+      </div>
+      <div class="coord-badge" id="coordBadge"></div>
     </div>
   </div>
 
-  <div class="game-layout">
-    <!-- Header -->
-    <header class="game-header">
-      <h1>⚔️ Village Wars</h1>
-      <div class="header-info">
-        <div class="player-badge">
-          <span id="playerName">Jogador</span>
-        </div>
-        <button class="logout-btn" onclick="logout()">Sair</button>
-      </div>
-    </header>
-
-    <!-- Left Sidebar - Buildings -->
-    <aside class="sidebar">
-      <h2>🏗️ Edificações</h2>
-      <div id="buildingList" class="building-list">
-        <!-- Populated by JS -->
-      </div>
-    </aside>
-
-    <!-- Main Area -->
-    <main class="main-area">
-      <div class="village-header">
-        <div class="village-name" id="villageName">Aldeia</div>
-        <div class="resources">
-          <div class="resource">
-            <span class="resource-icon">🪵</span>
-            <div>
-              <div class="resource-value" id="woodValue">0</div>
-              <div class="resource-rate" id="woodRate">+0/h</div>
-            </div>
-          </div>
-          <div class="resource">
-            <span class="resource-icon">🧱</span>
-            <div>
-              <div class="resource-value" id="clayValue">0</div>
-              <div class="resource-rate" id="clayRate">+0/h</div>
-            </div>
-          </div>
-          <div class="resource">
-            <span class="resource-icon">⛓️</span>
-            <div>
-              <div class="resource-value" id="ironValue">0</div>
-              <div class="resource-rate" id="ironRate">+0/h</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="village-grid" id="villageGrid">
-        <!-- Populated by JS -->
-      </div>
-    </main>
-
-    <!-- Right Panel - Info -->
-    <aside class="info-panel">
-      <h2>📋 Detalhes</h2>
-      <div id="buildingInfo">
-        <p style="color: var(--text-muted); text-align: center;">Selecione uma edificação para ver detalhes</p>
-      </div>
-      
-      <div class="queue-section">
-        <h2>⏳ Fila de Construção</h2>
-        <div id="buildQueue">
-          <p class="queue-empty">Nenhuma construção em andamento</p>
-        </div>
-      </div>
-    </aside>
+  <!-- ── Buildings View ───────────────────────────────────────────────────── -->
+  <div id="view-buildings" class="game-view">
+    <div class="section-header">Edificações</div>
+    <div id="buildingsGrid" class="buildings-grid"
+         style="padding:0 20px 40px; max-width:1100px; margin:0 auto;"></div>
   </div>
+
+  <!-- ── Map View ─────────────────────────────────────────────────────────── -->
+  <div id="view-map" class="game-view">
+    <div class="map-container">
+      <div class="map-title">Mapa Mundial</div>
+      <div id="worldGrid" class="world-grid">
+        <div class="loading"><div class="spinner"></div> Carregando...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Building Modal ───────────────────────────────────────────────────── -->
+  <div id="buildingModal" class="modal hidden">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content">
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- ── Notifications ────────────────────────────────────────────────────── -->
+  <div id="notifications"></div>
 
   <script src="/js/game.js"></script>
 </body>
